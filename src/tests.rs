@@ -4,7 +4,7 @@ use super::*;
 const DEFAULT_RS: RangeSet<256> = RangeSet::new();
 
 #[test]
-fn test_range_new_valid() {
+fn range_new_valid() {
     let range = Range::new(5, 10);
     assert!(range.is_ok());
     let range = range.unwrap();
@@ -13,20 +13,20 @@ fn test_range_new_valid() {
 }
 
 #[test]
-fn test_range_new_invalid() {
+fn range_new_invalid() {
     let range = Range::new(10, 5);
     assert_eq!(range.unwrap_err(), Error::InvalidRange);
 }
 
 #[test]
-fn test_range_contains() {
+fn range_contains() {
     let range1 = Range::new(5, 15).unwrap();
     let range2 = Range::new(7, 10).unwrap();
     assert_eq!(range1.contains(&range2), true);
 }
 
 #[test]
-fn test_range_overlaps() {
+fn range_overlaps() {
     let range1 = Range::new(5, 15).unwrap();
     let range2 = Range::new(10, 20).unwrap();
     let overlap = range1.overlaps(&range2);
@@ -37,21 +37,21 @@ fn test_range_overlaps() {
 }
 
 #[test]
-fn test_range_no_overlap() {
+fn range_no_overlap() {
     let range1 = Range::new(5, 15).unwrap();
     let range2 = Range::new(16, 20).unwrap();
     assert!(range1.overlaps(&range2).is_none());
 }
 
 #[test]
-fn test_rangeset_new() {
+fn rangeset_new() {
     let rangeset = DEFAULT_RS.clone();
     assert!(rangeset.is_empty());
     assert_eq!(rangeset.entries().len(), 0);
 }
 
 #[test]
-fn test_rangeset_insert() {
+fn rangeset_insert() {
     let mut rangeset = DEFAULT_RS.clone();
     rangeset.insert(Range::new(5, 15).unwrap()).unwrap();
     rangeset.insert(Range::new(20, 30).unwrap()).unwrap();
@@ -65,7 +65,7 @@ fn test_rangeset_insert() {
 }
 
 #[test]
-fn test_rangeset_insert_ordering() {
+fn rangeset_insert_ordering() {
     let mut rangeset = DEFAULT_RS.clone();
     assert_eq!(rangeset.insert(Range::new(0x1a, 0x9ffff).unwrap()), Ok(()));
     assert_eq!(rangeset.insert(Range::new(0x2, 0x9).unwrap()), Ok(()));
@@ -76,7 +76,7 @@ fn test_rangeset_insert_ordering() {
 }
 
 #[test]
-fn test_rangeset_insert_overlap() {
+fn rangeset_insert_overlap() {
     let mut rangeset = DEFAULT_RS.clone();
     rangeset.insert(Range::new(5, 15).unwrap()).unwrap();
     rangeset.insert(Range::new(10, 20).unwrap()).unwrap();
@@ -88,7 +88,7 @@ fn test_rangeset_insert_overlap() {
 }
 
 #[test]
-fn test_rangeset_insert_touching() {
+fn rangeset_insert_touching() {
     let mut rangeset = DEFAULT_RS.clone();
     rangeset.insert(Range::new(5, 10).unwrap()).unwrap();
     rangeset.insert(Range::new(11, 15).unwrap()).unwrap();
@@ -100,7 +100,7 @@ fn test_rangeset_insert_touching() {
 }
 
 #[test]
-fn test_rangeset_remove() {
+fn rangeset_remove() {
     let mut rangeset = DEFAULT_RS.clone();
     rangeset.insert(Range::new(5, 15).unwrap()).unwrap();
     rangeset.insert(Range::new(20, 30).unwrap()).unwrap();
@@ -116,7 +116,7 @@ fn test_rangeset_remove() {
 }
 
 #[test]
-fn test_rangeset_remove_full_range() {
+fn rangeset_remove_full_range() {
     let mut rangeset = DEFAULT_RS.clone();
     rangeset.insert(Range::new(5, 15).unwrap()).unwrap();
     let removed = rangeset.remove(Range::new(5, 15).unwrap()).unwrap();
@@ -125,7 +125,7 @@ fn test_rangeset_remove_full_range() {
 }
 
 #[test]
-fn test_rangeset_remove_noop() {
+fn rangeset_remove_noop() {
     let mut rangeset = DEFAULT_RS.clone();
     rangeset.insert(Range::new(5, 15).unwrap()).unwrap();
     let removed = rangeset.remove(Range::new(16, 20).unwrap()).unwrap();
@@ -139,7 +139,7 @@ fn test_rangeset_remove_noop() {
 }
 
 #[test]
-fn test_split_entry() {
+fn split_entry() {
     let mut rangeset = DEFAULT_RS.clone();
     rangeset.insert(Range::new(10, 30).unwrap()).unwrap();
     rangeset.split_entry(0, Range::new(15, 20).unwrap()).unwrap();
@@ -152,7 +152,7 @@ fn test_split_entry() {
 }
 
 #[test]
-fn test_split_entry_at_max_capacity() {
+fn split_entry_at_max_capacity() {
     let mut rangeset: RangeSet<2> = RangeSet::new();
     rangeset.insert(Range::new(10, 30).unwrap()).unwrap();
     rangeset.insert(Range::new(40, 60).unwrap()).unwrap();
