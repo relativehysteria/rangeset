@@ -206,7 +206,7 @@ impl<const N: usize> RangeSet<N> {
                 continue;
             }
 
-            // Handle partial overlaps
+            // Handle overlaps
             if range.start <= entry.start {
                 // Overlap at the start: adjust the start
                 self.ranges[idx].start = range.end.saturating_add(1);
@@ -215,34 +215,49 @@ impl<const N: usize> RangeSet<N> {
                 self.ranges[idx].end = range.start.saturating_sub(1);
             } else {
                 // The range is fully contained within this entry;
-                // split the entry in two
-
-                // Make sure we have space
-                if self.in_use >= self.ranges.len() {
-                    return Err(Error::RangeSetOverflow);
-                }
-
-                // Second half of the range
-                let second_half = Range {
-                    start: range.end.saturating_add(1),
-                    end: entry.end,
-                };
-
-                // First half of the range
-                self.ranges[idx].end = range.start.saturating_sub(1);
-
-                // Shift the remaining entries to the right by one to make space
-                if idx + 1 < self.in_use {
-                    self.ranges.copy_within(idx + 1..self.in_use, idx + 2);
-                }
-
-                // Insert the second half in the correct position
-                self.ranges[idx + 1] = second_half;
-                self.in_use += 1;
-                idx += 1;  // Skip the new entry
+                // split the entry in two and skip the new entry
+                self.split_entry(idx, range)?;
+                idx += 1;
             }
             idx += 1;
         }
         Ok(any_removed)
+    }
+
+    /// Split an entry into two when the `range` is fully contained within the
+    /// entry at `idx`, making sure there is enough space in the rangeset for
+    /// both entries.
+    fn split_entry(&mut self, idx: usize, range: Range) -> Result<(), Error> {
+        // Make sure we index in bounds
+        if idx >= self.in_use {
+            return Err(Error::IndexOutOfBounds);
+        }
+
+        // Make sure we have space
+        if self.in_use >= self.ranges.len() {
+            return Err(Error::RangeSetOverflow);
+        }
+
+        let entry = self.ranges[idx];
+
+        // Second half of the range
+        let second_half = Range {
+            start: range.end.saturating_add(1),
+            end: entry.end,
+        };
+
+        // First half of the range
+        self.ranges[idx].end = range.start.saturating_sub(1);
+
+        // Shift the remaining entries to the right by one to make space
+        if idx + 1 < self.in_use {
+            self.ranges.copy_within(idx + 1..self.in_use, idx + 2);
+        }
+
+        // Insert the second half in the correct position
+        self.ranges[idx + 1] = second_half;
+        self.in_use += 1;
+
+        Ok(())
     }
 }
