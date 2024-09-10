@@ -167,3 +167,12 @@ fn split_entry_at_max_capacity() {
     assert_eq!(entries[0], Range { start: 10, end: 30 });
     assert_eq!(entries[1], Range { start: 40, end: 60 });
 }
+
+#[test]
+fn zero_sized_rangeset() {
+    let mut rangeset: RangeSet<0> = RangeSet::new();
+    assert_eq!(rangeset.remove(Range::new(0, 10).unwrap()), Ok(false));
+    assert_eq!(rangeset.insert(Range::new(0, 10).unwrap()).unwrap_err(),
+               Error::RangeSetOverflow);
+    assert_eq!(rangeset.in_use, 0);
+}
