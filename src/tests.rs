@@ -15,8 +15,7 @@ fn test_range_new_valid() {
 #[test]
 fn test_range_new_invalid() {
     let range = Range::new(10, 5);
-    assert!(range.is_err());
-    assert_eq!(range.err().unwrap(), Error::InvalidRange);
+    assert_eq!(range.unwrap_err(), Error::InvalidRange);
 }
 
 #[test]
@@ -63,6 +62,17 @@ fn test_rangeset_insert() {
     assert_eq!(entries[0].end, 15);
     assert_eq!(entries[1].start, 20);
     assert_eq!(entries[1].end, 30);
+}
+
+#[test]
+fn test_rangeset_insert_ordering() {
+    let mut rangeset = DEFAULT_RS.clone();
+    assert_eq!(rangeset.insert(Range::new(0x1a, 0x9ffff).unwrap()), Ok(()));
+    assert_eq!(rangeset.insert(Range::new(0x2, 0x9).unwrap()), Ok(()));
+
+    let entries = rangeset.entries();
+    assert_eq!(entries[0], Range { start: 0x2, end: 0x9 });
+    assert_eq!(entries[1], Range { start: 0x1a, end: 0x9ffff});
 }
 
 #[test]
@@ -123,16 +133,37 @@ fn test_rangeset_remove_noop() {
 
     let entries = rangeset.entries();
     assert_eq!(entries.len(), 1);
+    assert_eq!(rangeset.in_use, entries.len());
     assert_eq!(entries[0].start, 5);
     assert_eq!(entries[0].end, 15);
 }
 
 #[test]
-fn test_rangeset_insert_ordering() {
+fn test_split_entry() {
     let mut rangeset = DEFAULT_RS.clone();
-    assert_eq!(rangeset.insert(Range::new(0x1a, 0x9ffff).unwrap()), Ok(()));
-    assert_eq!(rangeset.insert(Range::new(0x2, 0x9).unwrap()), Ok(()));
+    rangeset.insert(Range::new(10, 30).unwrap()).unwrap();
+    rangeset.split_entry(0, Range::new(15, 20).unwrap()).unwrap();
 
-    assert_eq!(rangeset.entries(),
-        [Range { start: 0x2, end: 0x9 }, Range { start: 0x1a, end: 0x9ffff}]);
+    let entries = rangeset.entries();
+    assert_eq!(rangeset.in_use, entries.len());
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0], Range { start: 10, end: 14 });
+    assert_eq!(entries[1], Range { start: 21, end: 30 });
+}
+
+#[test]
+fn test_split_entry_at_max_capacity() {
+    let mut rangeset: RangeSet<2> = RangeSet::new();
+    rangeset.insert(Range::new(10, 30).unwrap()).unwrap();
+    rangeset.insert(Range::new(40, 60).unwrap()).unwrap();
+
+    let res = rangeset.split_entry(0, Range::new(15, 20).unwrap());
+    assert_eq!(res.unwrap_err(), Error::RangeSetOverflow);
+
+    // Make sure the rangeset is unchanged
+    let entries = rangeset.entries();
+    assert_eq!(rangeset.in_use, entries.len());
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0], Range { start: 10, end: 30 });
+    assert_eq!(entries[1], Range { start: 40, end: 60 });
 }
