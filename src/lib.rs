@@ -50,7 +50,7 @@ impl Range {
         let range = unsafe { Self::new_unchecked(start, end) };
 
         // Make sure it's valid
-        (range.start < range.end).then_some(range).ok_or(Error::InvalidRange)
+        (range.start <= range.end).then_some(range).ok_or(Error::InvalidRange)
     }
 
     /// Returns a new possibly incorrect range.
@@ -216,8 +216,7 @@ impl<const N: usize> RangeSet<N> {
             } else {
                 // The range is fully contained within this entry;
                 // split the entry in two and skip the new entry
-                self.split_entry(idx, range)?;
-                idx += 1;
+                idx += 1 * self.split_entry(idx, range)? as usize;
             }
             idx += 1;
         }
@@ -226,8 +225,9 @@ impl<const N: usize> RangeSet<N> {
 
     /// Split an entry into two when the `range` is fully contained within the
     /// entry at `idx`, making sure there is enough space in the rangeset for
-    /// both entries.
-    fn split_entry(&mut self, idx: usize, range: Range) -> Result<(), Error> {
+    /// both entries. Returns `true` if an entry was in fact split and another
+    /// one created and `false` if nothing happened.
+    fn split_entry(&mut self, idx: usize, range: Range) -> Result<bool, Error> {
         // Make sure we index in bounds
         if idx >= self.in_use {
             return Err(Error::IndexOutOfBounds);
@@ -240,14 +240,19 @@ impl<const N: usize> RangeSet<N> {
 
         let entry = self.ranges[idx];
 
-        // Second half of the range
-        let second_half = Range {
-            start: range.end.saturating_add(1),
-            end: entry.end,
-        };
+        // Make sure the entry contains the range fully
+        if !entry.contains(&range) {
+            return Ok(false);
+        }
 
-        // First half of the range
-        self.ranges[idx].end = range.start.saturating_sub(1);
+        // First half of the range, ensure the range doesn't become invalid
+        if range.start > entry.start {
+            self.ranges[idx].end = range.start.saturating_sub(1);
+        } else {
+            // If the range.start is exactly the start of the entry, skip
+            // modifying it
+            self.ranges[idx].end = entry.start;
+        }
 
         // Shift the remaining entries to the right by one to make space
         if idx + 1 < self.in_use {
@@ -255,9 +260,10 @@ impl<const N: usize> RangeSet<N> {
         }
 
         // Insert the second half in the correct position
-        self.ranges[idx + 1] = second_half;
+        self.ranges[idx + 1] = Range::new(
+            range.end.saturating_add(1), entry.end)?;
         self.in_use += 1;
 
-        Ok(())
+        Ok(true)
     }
 }
