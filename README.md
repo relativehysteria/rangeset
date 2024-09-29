@@ -5,4 +5,5 @@ Based on Brandon's code
 that is released under the MIT license. He refactored the code in his later
 kernels but left the old implementation as-is in chocolate milk. 
 
-that being said his implementation sucks lmao
+that being said his implementation ~~sucks lmao~~ is faster if one doesn't care
+for sorted ranges within the set.

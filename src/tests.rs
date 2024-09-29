@@ -15,7 +15,8 @@ fn range_new_valid() {
 #[test]
 fn range_new_invalid() {
     let range = Range::new(10, 5);
-    assert_eq!(range.unwrap_err(), Error::InvalidRange);
+    assert_eq!(
+        range.unwrap_err(), Error::InvalidRange(Range { start: 10, end: 5 }));
 }
 
 #[test]
@@ -171,7 +172,7 @@ fn rangeset_delete() {
     let mut rangeset = DEFAULT_RS.clone();
     rangeset.insert(Range::new(10, 20).unwrap()).unwrap();
 
-    assert_eq!(rangeset.delete(1).unwrap_err(), Error::IndexOutOfBounds);
+    assert_eq!(rangeset.delete(1).unwrap_err(), Error::IndexOutOfBounds(1));
     assert!(rangeset.delete(0).is_ok())
 }
 

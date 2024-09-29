@@ -13,10 +13,10 @@ use core::cmp;
 pub enum Error {
     /// An attempt was made to perform an operation on an invalid [`Range`],
     /// i.e. `range.start > range.end`.
-    InvalidRange,
+    InvalidRange(Range),
 
     /// An attempt was made to index into a [`RangeSet`] out of its bounds.
-    IndexOutOfBounds,
+    IndexOutOfBounds(usize),
 
     /// An attempt was made to insert an entry into a [`RangeSet`] that would
     /// overflow.
@@ -24,9 +24,6 @@ pub enum Error {
 
     /// An attempt was made to allocate 0 bytes of memory.
     ZeroSizedAllocation,
-
-    /// An attempt was made to allocate memory not aligned to a power of two.
-    WrongAlignment,
 }
 
 /// An inclusive range. `RangeInclusive` doesn't implement `Copy`, so it's not
@@ -46,11 +43,11 @@ impl Range {
     ///
     /// Returns an error if the range is invalid (i.e. `start > end`).
     pub fn new(start: usize, end: usize) -> Result<Self, Error> {
-        // Create a new range
-        let range = unsafe { Self::new_unchecked(start, end) };
-
-        // Make sure it's valid
-        (range.start <= range.end).then_some(range).ok_or(Error::InvalidRange)
+        unsafe {
+        (start <= end)
+            .then_some(Self::new_unchecked(start, end))
+            .ok_or(Error::InvalidRange(Self::new_unchecked(start, end)))
+        }
     }
 
     /// Returns a new possibly incorrect range.
@@ -116,7 +113,7 @@ impl<const N: usize> RangeSet<N> {
     /// Delete the range at `idx`
     fn delete(&mut self, idx: usize) -> Result<(), Error> {
         // Make sure we don't index out of bounds
-        if idx >= self.in_use { return Err(Error::IndexOutOfBounds); }
+        if idx >= self.in_use { return Err(Error::IndexOutOfBounds(idx)); }
 
         // Put the delete range to the end
         for i in idx..self.in_use - 1 {
@@ -227,10 +224,11 @@ impl<const N: usize> RangeSet<N> {
     /// entry at `idx`, making sure there is enough space in the rangeset for
     /// both entries. Returns `true` if an entry was in fact split and another
     /// one created and `false` if nothing happened.
+    #[inline(always)]
     fn split_entry(&mut self, idx: usize, range: Range) -> Result<bool, Error> {
         // Make sure we index in bounds
         if idx >= self.in_use {
-            return Err(Error::IndexOutOfBounds);
+            return Err(Error::IndexOutOfBounds(idx));
         }
 
         // Make sure we have space
